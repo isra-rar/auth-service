@@ -1,0 +1,19 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: eHmTzE45Of
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+jwt:
+  secret: 9kXYJ7z5JQ4uF6b5PaVb57vJM4PtgEr9PbW+O9u3TtBx1yRzGqxv+gXYs5tY3rmEUMlY5/8TW5/Z8rTTR8U9NA==
+  expiration: 86400000
