@@ -25,6 +25,9 @@ import java.util.stream.Stream;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String TOKEN_PREFIX = "Bearer ";
+    private static final List<String> PUBLIC_ROUTES = List.of(
+            "/", "/api/users/create", "/login", "/api/auth/"
+    );
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
@@ -38,9 +41,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        String requestURI = request.getRequestURI();
+
+        // Se a rota estiver na lista de rotas públicas, apenas continue sem validar JWT
+        if (PUBLIC_ROUTES.stream().anyMatch(requestURI::startsWith)) {
+            log.info("Rota pública acessada: {} - Ignorando autenticação", requestURI);
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Se a requisição não for pública, continua validando o JWT
         extractTokenFromHeader(request.getHeader("Authorization"))
                 .filter(token -> SecurityContextHolder.getContext().getAuthentication() == null)
-                .filter(jwtTokenProvider::isTokenValid) // Usa a validação direta
+                .filter(jwtTokenProvider::isTokenValid)
                 .map(jwtTokenProvider::getUsernameFromToken)
                 .map(userDetailsService::loadUserByUsername)
                 .ifPresent(userDetails -> setAuthentication(userDetails, request));
@@ -55,7 +68,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void setAuthentication(UserDetails userDetails, HttpServletRequest request) {
-        List<SimpleGrantedAuthority> authorities = getAuthoritiesFromToken(userDetails.getUsername());
+        List<SimpleGrantedAuthority> authorities = getAuthoritiesFromUser(userDetails);
 
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
@@ -64,10 +77,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    private List<SimpleGrantedAuthority> getAuthoritiesFromToken(String token) {
-        String roles = jwtTokenProvider.getRolesFromToken(token);
-        return Stream.of(roles.split(","))
-                .map(SimpleGrantedAuthority::new)
+    private List<SimpleGrantedAuthority> getAuthoritiesFromUser(UserDetails userDetails) {
+        return userDetails.getAuthorities().stream()
+                .map(grantedAuthority -> new SimpleGrantedAuthority(grantedAuthority.getAuthority()))
                 .collect(Collectors.toList());
     }
 }

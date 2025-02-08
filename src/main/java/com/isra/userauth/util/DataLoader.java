@@ -46,6 +46,8 @@ public class DataLoader implements CommandLineRunner {
 
             Usuario adminUser = new Usuario();
             adminUser.setUsername("admin");
+            adminUser.setFirstName("Israel");
+            adminUser.setLastName("Rodgrigues");
             adminUser.setEmail("admin@example.com");
             adminUser.setPassword(passwordEncoder.encode("adminpassword"));
             adminUser.setRoles(adminRoles);
@@ -57,6 +59,8 @@ public class DataLoader implements CommandLineRunner {
             Usuario regularUser = new Usuario();
             regularUser.setUsername("user");
             regularUser.setEmail("user@example.com");
+            regularUser.setFirstName("Eduarda");
+            regularUser.setLastName("Bandeira");
             regularUser.setPassword(passwordEncoder.encode("userpassword"));
             regularUser.setRoles(userRoles);
             usuarioRepository.save(regularUser);
