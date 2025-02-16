@@ -42,7 +42,7 @@ public class JwtTokenProvider {
 
         String token = getRoles(userDetails.getUsername(), roles, expirationTime);
 
-        return new JwtResponse("Bearer " + token, expirationTime);
+        return new JwtResponse(token, expirationTime);
     }
 
     public String getUsernameFromToken(String token) {
