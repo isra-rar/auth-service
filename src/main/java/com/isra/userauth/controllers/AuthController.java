@@ -1,5 +1,6 @@
 package com.isra.userauth.controllers;
 
+import com.isra.userauth.DTO.ApiResponse;
 import com.isra.userauth.DTO.JwtResponse;
 import com.isra.userauth.DTO.LoginRequest;
 import com.isra.userauth.domain.GoogleUserInfo;
@@ -15,12 +16,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -34,7 +30,7 @@ public class AuthController {
 
 
     @PostMapping("/login")
-    public ResponseEntity<JwtResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<ApiResponse<JwtResponse>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getUsername(),
@@ -45,20 +41,22 @@ public class AuthController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         JwtResponse jwtResponse = jwtTokenProvider.generateToken(authentication);
 
-        return ResponseEntity.ok(jwtResponse);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", jwtResponse));
     }
 
-    @PostMapping("/google")
-    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> request) {
-        String code = request.get("code");
-
+    @GetMapping("/google")
+    public ResponseEntity<?> googleLogin(@RequestParam String code) {
         try {
             String accessToken = authService.getGoogleAccessToken(code);
             GoogleUserInfo userInfo = authService.getGoogleUserInfo(accessToken);
 
             String jwtToken = jwtTokenProvider.generateTokenFromGoogle(userInfo);
 
-            return ResponseEntity.ok(Map.of("token", jwtToken, "user", userInfo));
+            String frontendCallbackUrl = "http://localhost:4200/auth/callback?token=" + jwtToken;
+
+            // Redirecionamento com o token na URL
+            return ResponseEntity.status(HttpStatus.FOUND).header("Location", frontendCallbackUrl).build();
+
         } catch (AuthException e) {
             log.error("Erro na autenticação com o Google: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
